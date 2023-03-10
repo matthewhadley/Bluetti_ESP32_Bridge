@@ -7,7 +7,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-WiFiClient mqttClient;  
+WiFiClient mqttClient;
 PubSubClient client(mqttClient);
 int publishErrorCount = 0;
 unsigned long lastMQTTMessage = 0;
@@ -18,25 +18,25 @@ String map_field_name(enum field_names f_name){
    switch(f_name) {
       case DC_OUTPUT_POWER:
         return "dc_output_power";
-        break; 
+        break;
       case AC_OUTPUT_POWER:
         return "ac_output_power";
-        break; 
+        break;
       case DC_OUTPUT_ON:
         return "dc_output_on";
-        break; 
+        break;
       case AC_OUTPUT_ON:
         return "ac_output_on";
-        break; 
+        break;
       case AC_OUTPUT_MODE:
         return "ac_output_mode";
-        break; 
+        break;
       case POWER_GENERATION:
         return "power_generation";
-        break;       
+        break;
       case TOTAL_BATTERY_PERCENT:
         return "total_battery_percent";
-        break; 
+        break;
       case DC_INPUT_POWER:
         return "dc_input_power";
         break;
@@ -119,53 +119,53 @@ String map_field_name(enum field_names f_name){
         return "internal_dc_input_current";
         break;
       case INTERNAL_CELL01_VOLTAGE:
-        return "internal_cell01_voltage";    
+        return "internal_cell01_voltage";
         break;
       case INTERNAL_CELL02_VOLTAGE:
-        return "internal_cell02_voltage";    
+        return "internal_cell02_voltage";
         break;
       case INTERNAL_CELL03_VOLTAGE:
-        return "internal_cell03_voltage";    
+        return "internal_cell03_voltage";
         break;
       case INTERNAL_CELL04_VOLTAGE:
-        return "internal_cell04_voltage";    
+        return "internal_cell04_voltage";
         break;
       case INTERNAL_CELL05_VOLTAGE:
-        return "internal_cell05_voltage";    
+        return "internal_cell05_voltage";
         break;
       case INTERNAL_CELL06_VOLTAGE:
-        return "internal_cell06_voltage";    
+        return "internal_cell06_voltage";
         break;
       case INTERNAL_CELL07_VOLTAGE:
-        return "internal_cell07_voltage";    
+        return "internal_cell07_voltage";
         break;
       case INTERNAL_CELL08_VOLTAGE:
-        return "internal_cell08_voltage";    
+        return "internal_cell08_voltage";
         break;
       case INTERNAL_CELL09_VOLTAGE:
-        return "internal_cell09_voltage";    
+        return "internal_cell09_voltage";
         break;
       case INTERNAL_CELL10_VOLTAGE:
-        return "internal_cell10_voltage";    
+        return "internal_cell10_voltage";
         break;
       case INTERNAL_CELL11_VOLTAGE:
-        return "internal_cell11_voltage";    
+        return "internal_cell11_voltage";
         break;
       case INTERNAL_CELL12_VOLTAGE:
-        return "internal_cell12_voltage";    
+        return "internal_cell12_voltage";
         break;
       case INTERNAL_CELL13_VOLTAGE:
-        return "internal_cell13_voltage";    
+        return "internal_cell13_voltage";
         break;
       case INTERNAL_CELL14_VOLTAGE:
-        return "internal_cell14_voltage";    
+        return "internal_cell14_voltage";
         break;
       case INTERNAL_CELL15_VOLTAGE:
-        return "internal_cell15_voltage";    
+        return "internal_cell15_voltage";
         break;
       case INTERNAL_CELL16_VOLTAGE:
-        return "internal_cell16_voltage";    
-        break;     
+        return "internal_cell16_voltage";
+        break;
       case LED_MODE:
         return "led_mode";
         break;
@@ -191,7 +191,7 @@ String map_field_name(enum field_names f_name){
         return "unknown";
         break;
    }
-  
+
 }
 
 //There is no reflection to do string to enum
@@ -266,13 +266,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
   payload[length] = '\0';
   String topic_path = String(topic);
   topic_path.toLowerCase();//in case we recieve DC_OUTPUT_ON instead of the expected dc_output_on
-  
+
   Serial.print("MQTT Message arrived on topic: ");
   Serial.print(topic);
   Serial.print(" Payload: ");
   String strPayload = String((char * ) payload);
   Serial.println(strPayload);
-  
+
   bt_command_t command;
   command.prefix = 0x01;
   command.field_update_cmd = 0x06;
@@ -281,7 +281,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       if (topic_path.indexOf(map_field_name(bluetti_device_command[i].f_name)) > -1){
             command.page = bluetti_device_command[i].f_page;
             command.offset = bluetti_device_command[i].f_offset;
-            
+
 			      String current_name = map_field_name(bluetti_device_command[i].f_name);
             strPayload = map_command_value(current_name,strPayload);
     }
@@ -292,7 +292,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   command.len = swap_bytes(strPayload.toInt());
   command.check_sum = modbus_crc((uint8_t*)&command,6);
   lastMQTTMessage = millis();
-  
+
   sendBTCommand(command);
 }
 
@@ -312,22 +312,22 @@ void subscribeTopic(enum field_names field_name) {
 void publishTopic(enum field_names field_name, String value){
   char publishTopicBuf[1024];
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
- 
+
 #ifdef DEBUG
   Serial.println("publish topic for field: " +  map_field_name(field_name));
 #endif
-  
+
   //sometimes we get empty values / wrong vales - all the time device_type is empty
   if (map_field_name(field_name) == "device_type" && value.length() < 3){
 
     Serial.println(F("Error while publishTopic! 'device_type' can't be empty, reboot device)"));
     ESP.restart();
-   
-  } 
-  
-  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, map_field_name(field_name).c_str() ); 
+
+  }
+
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, map_field_name(field_name).c_str() );
   if (strlen(settings.mqtt_server) == 0){
-    AddtoMsgView(String(millis()) +": " + map_field_name(field_name) + " -> " + value); 
+    AddtoMsgView(String(millis()) +": " + map_field_name(field_name) + " -> " + value);
   }else{
     lastMQTTMessage = millis();
     if (!client.publish(publishTopicBuf, value.c_str() )){
@@ -338,36 +338,66 @@ void publishTopic(enum field_names field_name, String value){
       AddtoMsgView(String(lastMQTTMessage) + ": " + map_field_name(field_name) + " -> " + value);
     }
   }
-  
- 
+
+
 }
 
 void publishDeviceState(){
   char publishTopicBuf[1024];
 
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
-  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device" ); 
-  String value = "{\"IP\":\"" + WiFi.localIP().toString() + "\", \"MAC\":\"" + WiFi.macAddress() + "\", \"Uptime\":" + millis() + "}";
+  String value;
+
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_RSSI" );
+  value = String(WiFi.RSSI());
   if (!client.publish(publishTopicBuf, value.c_str() )){
     publishErrorCount++;
   }
+
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_IP" );
+  value = WiFi.localIP().toString();
+  if (!client.publish(publishTopicBuf, value.c_str() )){
+    publishErrorCount++;
+  }
+
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_MAC" );
+  value = String(WiFi.macAddress());
+  if (!client.publish(publishTopicBuf, value.c_str() )){
+    publishErrorCount++;
+  }
+
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_uptime" );
+  value = String(millis());
+  if (!client.publish(publishTopicBuf, value.c_str() )){
+    publishErrorCount++;
+  }
+
   lastMQTTMessage = millis();
   previousDeviceStatePublish = millis();
- 
+
 }
 
 void publishDeviceStateStatus(){
   char publishTopicBuf[1024];
 
   ESPBluettiSettings settings = get_esp32_bluetti_settings();
-  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_status" ); 
-  String value = "{\"MQTTconnected\":" + String(isMQTTconnected()) + ", \"BTconnected\":" + String(isBTconnected()) + "}"; 
+  String value;
+
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_MQTT_connected" );
+  value = String(isMQTTconnected());
   if (!client.publish(publishTopicBuf, value.c_str() )){
     publishErrorCount++;
   }
+
+  sprintf(publishTopicBuf, "bluetti/%s/state/%s", settings.bluetti_device_id, "device_BT_connected" );
+  value = String(isBTconnected());
+  if (!client.publish(publishTopicBuf, value.c_str() )){
+    publishErrorCount++;
+  }
+
   lastMQTTMessage = millis();
   previousDeviceStateStatusPublish = millis();
- 
+
 }
 
 void initMQTT(){
@@ -382,20 +412,21 @@ void initMQTT(){
     Serial.print(settings.mqtt_server);
     Serial.print(":");
     Serial.println(F(settings.mqtt_port));
-    
+
     client.setServer(settings.mqtt_server, atoi(settings.mqtt_port));
     client.setCallback(callback);
 
     bool connect_result;
-    const char connect_id[] = "Bluetti_ESP32";
+    // const char connect_id[] = "Bluetti_ESP32_2";
+    const char connect_id[] = DEVICE_NAME;
     if (settings.mqtt_username) {
         connect_result = client.connect(connect_id, settings.mqtt_username, settings.mqtt_password);
     } else {
         connect_result = client.connect(connect_id);
     }
-    
+
     if (connect_result) {
-        
+
       Serial.println(F("Connected to MQTT Server... "));
 
       // subscribe to topics for commands
@@ -407,8 +438,8 @@ void initMQTT(){
       publishDeviceStateStatus();
     }
 
-    
-      
+
+
 };
 
 void handleMQTT(){
@@ -416,15 +447,15 @@ void handleMQTT(){
     if (strlen(settings.mqtt_server) == 0){
       return;
     }
-    if ((millis() - lastMQTTMessage) > (MAX_DISCONNECTED_TIME_UNTIL_REBOOT * 60000)){ 
+    if ((millis() - lastMQTTMessage) > (MAX_DISCONNECTED_TIME_UNTIL_REBOOT * 60000)){
       Serial.println(F("MQTT is disconnected over allowed limit, reboot device"));
       ESP.restart();
     }
-      
-    if ((millis() - previousDeviceStatePublish) > (DEVICE_STATE_UPDATE * 60000)){ 
+
+    if ((millis() - previousDeviceStatePublish) > (DEVICE_STATE_UPDATE * 60000)){
       publishDeviceState();
     }
-    if ((millis() - previousDeviceStateStatusPublish) > (DEVICE_STATE_STATUS_UPDATE * 60000)){ 
+    if ((millis() - previousDeviceStateStatusPublish) > (DEVICE_STATE_STATUS_UPDATE * 60000)){
       publishDeviceStateStatus();
     }
     if (!isMQTTconnected() && publishErrorCount > 5){
@@ -438,7 +469,7 @@ void handleMQTT(){
       initMQTT();
 
     }
-    
+
     client.loop();
 }
 
@@ -449,7 +480,7 @@ bool isMQTTconnected(){
     else
     {
       return false;
-    }  
+    }
 }
 
 int getPublishErrorCount(){

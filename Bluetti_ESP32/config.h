@@ -7,8 +7,10 @@
 
 #define EEPROM_SALT 13374
 
-#define DEVICE_NAME "BLUETTI-MQTT"
-#define BLUETTI_TYPE EP500P
+// defined by build flag
+// #define DEVICE_NAME "BLUETTI-MQTT"
+
+#define BLUETTI_TYPE EB3A
 
 #define BLUETOOTH_QUERY_MESSAGE_DELAY 3000
 
@@ -27,9 +29,9 @@
 #define MSG_VIEWER_REFRESH_CYCLE 5 //refresh time for website data in seconds
 
 
-#ifndef BLUETTI_TYPE
-  #define BLUETTI_TYPE AC300
-#endif
+// #ifndef BLUETTI_TYPE
+//   #define BLUETTI_TYPE AC300
+// #endif
 
 
 
